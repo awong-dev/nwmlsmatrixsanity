@@ -1,10 +1,8 @@
 {
-  // Required
   "name": "NW MLS Matrix Sanity Extension",
   "version": "0.1",
   "manifest_version": 2,
 
-  // Recommended
   "description": "Simple conent script to bring sanity into the NW MLS webpage",
 
   "content_scripts": [
