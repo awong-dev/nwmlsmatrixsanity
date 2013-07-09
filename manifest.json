@@ -1,0 +1,19 @@
+{
+  // Required
+  "name": "NW MLS Matrix Sanity Extension",
+  "version": "0.1",
+  "manifest_version": 2,
+
+  // Recommended
+  "description": "Simple conent script to bring sanity into the NW MLS webpage",
+  "default_locale": "en",
+
+  "content_scripts": [
+    {
+      "matches": [ "http://www.matrix.nwmls.com/Matrix/Public/Portal.aspx" ],
+      "css": ["mystyles.css"],
+      "all_frames": false,
+      "js": ["add_frames.js", "intercept_controls.js"]
+    }
+  ]
+}
