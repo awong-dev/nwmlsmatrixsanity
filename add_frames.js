@@ -6,7 +6,7 @@ var nwmlssanity = nwmlssanity || {};
   var map_div = document.createElement('iframe');
   var parentElement = list_div.parentElement;
   parentElement.insertBefore(detail_div, list_div);
-  parentElement.appendChild(map_div);
+  parentElement.insertBefore(map_div, list_div);
 
   detail_div.className = 's_detail';
   detail_div.id = 's_detail';

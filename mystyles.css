@@ -1,22 +1,25 @@
 .s_detail {
-  clear: both;
-  min-height: 500px;
-  height = 90%;
-  width: 100%;
-}
-
-.s_list {
   float: left;
-  min-height: 300px;
-  height: 10%;
-  width: auto;
-  overflow: scroll;
+  min-height: 500px;
+  height = 100%;
+  width: 65%;
+  padding: 1px;
 }
 
 .s_map {
   float: left;
-  min-height: 300px;
+  min-height: 400px;
+  min-width: 250px;
+  padding: 1px;
+  height: 100%;
+  width: 30%;
+}
+
+.s_list {
+  clear: both;
+  min-height: 200px;
   height: 10%;
-  width: 400px;
+  width: auto;
+  overflow: scroll;
 }
 

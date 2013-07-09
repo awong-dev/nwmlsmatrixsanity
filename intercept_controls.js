@@ -49,7 +49,6 @@ function updateDetail(page, entry) {
   };
 
 
-  // TODO(ajwong): Navigate to right page.
   if (page != 1) {
     detail_iframe.onload = function() {
       var paging_span = getPagingSpan(detail_iframe.contentDocument);
