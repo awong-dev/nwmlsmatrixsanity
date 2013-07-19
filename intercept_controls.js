@@ -27,89 +27,109 @@ function updateMap(nRecordId){
   map_iframe.src = strMapPage+"?RecordID="+nRecordId+"&TableID="+nTableID+"&L="+nLanguID+strPublic;
 }
 
-function updateDetail(page, entry) {
-  // This is a total hack. We navigate the iframe, click the wanted link,
-  // grab a ref to the wanted element, whack all the html on the page,
-  // and then make that element the only one in the body.
+function updateDetail(postback_target, postback_argument) {
   var detail_iframe = document.getElementById('s_detail');
-  var click_entry = function() {
-    // When the click is done, kill the navigation controls.
-    detail_iframe.onload = function() {
-      var real_details = detail_iframe.contentDocument.getElementById('_ctl0_m_pnlDisplay');
-      detail_iframe.contentDocument.body.innerHTML = '';
-      detail_iframe.contentDocument.body.appendChild(real_details);
-    };
 
-    // Do the click.
-    console.log("detail page to entry " + entry);
-    var inner_link = detail_iframe.contentDocument.getElementsByClassName('d111m6')[entry].getElementsByTagName('a')[0];
-    clickElement(inner_link,
-        detail_iframe.contentWindow,
-        detail_iframe.contentDocument);
-  };
-
-
-  if (page != 1) {
-    detail_iframe.onload = function() {
-      var paging_span = getPagingSpan(detail_iframe.contentDocument);
-      detail_iframe.onload = click_entry;
-      clickElement(paging_span.children[page-1],
-          detail_iframe.contentWindow,
-          detail_iframe.contentDocument);
-    };
-  } else {
-    detail_iframe.onload = click_entry;
+  // All of the navigation is done via posting a mega form known as 'theForm'
+  // with its __EVENTTARGET and __EVENTARGUMENT <input> tags set to the right
+  // value.  The server side has a little closure of state that's kept in a
+  // hidden <input> field.  Most of the other fields are left blank.
+  //
+  // We make a hack of this by cloning the top-level form on click,
+  // injecting it into the iframe's document, and then submit it to get the
+  // navigation we want.
+  var cloned_form = document.forms[0].cloneNode();
+  var input_elements = document.forms[0].getElementsByTagName('input');
+  var i = 0;
+  for (i = 0; i < input_elements.length; ++i) {
+    var cloned_input = input_elements[i].cloneNode();
+    if (cloned_input.name == '__EVENTTARGET') {
+      cloned_input.value = postback_target;
+    } else if (cloned_input.name == '__EVENTARGUMENT') {
+      cloned_input.value = postback_argument;
+    }
+    cloned_form.appendChild(cloned_input);
   }
 
-  detail_iframe.src = window.location.href;
+  var remove_controls = function() {
+    detail_iframe.onload = null;
+    var real_details = detail_iframe.contentDocument.getElementById('_ctl0_m_pnlDisplay');
+    detail_iframe.contentDocument.body.innerHTML = '';
+    detail_iframe.contentDocument.body.appendChild(real_details);
+  };
+
+  var navigate = function() {
+    detail_iframe.onload = remove_controls;
+    detail_iframe.contentDocument.body.appendChild(cloned_form);
+    cloned_form.submit();
+  };
+
+  if (detail_iframe.contentWindow.location.origin == 'null' ||
+      detail_iframe.contentWindow.location.origin == window.location.origin) {
+    navigate();
+  } else {
+    detail_iframe.onload = navigate;
+    detail_iframe.src = 'about:blank';
+  }
 }
 
-function createMlsOnClick(map_record, page, entry) {
+function createMlsOnClick(map_record, postback_target, postback_argument) {
   return function() {
     updateMap(map_record);
-    updateDetail(page, entry);
+    updateDetail(postback_target, postback_argument);
     return false;
   };
 }
 
 function interceptUI() {
-  // Hide some stupid buttons.
-  var photo_buttons = document.getElementsByClassName('d111m8');
-  var map_buttons = document.getElementsByClassName('d111m9');
-  var i = 0;
-  for (i = 0; i < photo_buttons.length; i++) {
-    photo_buttons[i].hidden = true;
-  }
-  for (i = 0; i < map_buttons.length; i++) {
-    map_buttons[i].hidden = true;
-  }
-
-  // Find the current page:
-  var current_page = getPagingSpan(document).getElementsByTagName('b')[0].innerText;
-  current_page = current_page.split('[')[1];
-  current_page = current_page.split(']')[0];
-  console.log('current page: ' + current_page);
-
   // Fixup anchors to update panes rather than postback.
   var mls_entries = document.getElementsByClassName('singleLineDisplay');
   var mls_map_record_ids = [];
   for (i = 0; i < mls_entries.length; i++) {
     var entry = mls_entries[i];
-    var href = entry.getElementsByClassName('d111m9')[0].getElementsByTagName('a')[0].href;
+
     // href looks like: "javascript:Dpy.mapPopup('57749205', 1, 1)" 
     // So if we want the number, we can do a split on single quotes.
-    var map_record = href.split("'")[1];
-    var mls_link_func = createMlsOnClick(map_record, current_page, i);
+    var map_href = entry.getElementsByClassName('d111m9')[0].getElementsByTagName('a')[0].href;
+    var map_record = map_href.split("'")[1];
+
+    // Find the post parameters. href looks like:
+    // javascript:__doPostBack('_ctl0$m_DisplayCore','Redisplay|109,0')
+    // The arguments correspond to input fields on theForm named
+    // __EVENTTARGET, and __EVENTARGUMENT respectively.
+    var anchor = entry.getElementsByClassName('d111m6')[0].getElementsByTagName('a')[0];
+    var postback_re = /javascript:__doPostBack\('(.*)','(.*)'\)/;
+    var matches = anchor.href.match(postback_re);
+    var mls_link_func = createMlsOnClick(map_record, matches[1], matches[2]);
+
+    // Fix up the anchor.
+    anchor.href = 'javascript:void(0);';
+    anchor.addEventListener('click', mls_link_func);
 
     if (i == 0) {
       mls_link_func();
     }
-
-    // Fix up the anchor.
-    var anchor = entry.getElementsByClassName('d111m6')[0].getElementsByTagName('a')[0];
-    anchor.href = 'javascript:void(0);';
-    anchor.addEventListener('click', mls_link_func);
   }
+
+  // After all the links have been harvested, hide some stupid buttons.
+  var photo_buttons = document.getElementsByClassName('d111m8');
+  var map_buttons = document.getElementsByClassName('d111m9');
+  var i = 0;
+  for (i = 0; i < photo_buttons.length; i++) {
+    var b = photo_buttons[i];
+    b.style.width = b.offsetWidth + 'px';
+    b.style.height = b.offsetHeight + 'px';
+    b.innerHTML='';
+  }
+  for (i = 0; i < map_buttons.length; i++) {
+    var b = map_buttons[i];
+    b.style.width = b.offsetWidth + 'px';
+    b.style.height = b.offsetHeight + 'px';
+    b.innerHTML='';
+  }
+
+  window.__doPostBack = function(a,b) { console.log('hi ' + a + ' ' + b); };
+
 }
 
 interceptUI();
