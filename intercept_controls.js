@@ -73,10 +73,11 @@ function updateDetail(postback_target, postback_argument) {
   }
 }
 
-function createMlsOnClick(map_record, postback_target, postback_argument) {
+function createMlsOnClick(map_record, table, postback_target, postback_argument) {
   return function() {
     updateMap(map_record);
     updateDetail(postback_target, postback_argument);
+    table.style.backgroundColor = null;
     return false;
   };
 }
@@ -87,6 +88,8 @@ function interceptUI() {
   var mls_map_record_ids = [];
   for (i = 0; i < mls_entries.length; i++) {
     var entry = mls_entries[i];
+
+    var table = entry.getElementsByClassName('d111m0')[0];
 
     // href looks like: "javascript:Dpy.mapPopup('57749205', 1, 1)" 
     // So if we want the number, we can do a split on single quotes.
@@ -100,7 +103,7 @@ function interceptUI() {
     var anchor = entry.getElementsByClassName('d111m6')[0].getElementsByTagName('a')[0];
     var postback_re = /javascript:__doPostBack\('(.*)','(.*)'\)/;
     var matches = anchor.href.match(postback_re);
-    var mls_link_func = createMlsOnClick(map_record, matches[1], matches[2]);
+    var mls_link_func = createMlsOnClick(map_record, table, matches[1], matches[2]);
 
     // Fix up the anchor.
     anchor.href = 'javascript:void(0);';
